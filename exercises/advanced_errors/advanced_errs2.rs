@@ -16,7 +16,7 @@
 // 4. Complete the partial implementation of `Display` for
 //    `ParseClimateError`.
 
-// I AM NOT DONE
+
 
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
@@ -37,9 +37,7 @@ enum ParseClimateError {
 // This `From` implementation allows the `?` operator to work on
 // `ParseIntError` values.
 impl From<ParseIntError> for ParseClimateError {
-    fn from(e: ParseIntError) -> Self {
-        Self::ParseInt(e)
-    }
+    fn from(e: ParseIntError) -> Self { Self::ParseInt(e) }
 }
 
 // This `From` implementation allows the `?` operator to work on
@@ -47,11 +45,21 @@ impl From<ParseIntError> for ParseClimateError {
 impl From<ParseFloatError> for ParseClimateError {
     fn from(e: ParseFloatError) -> Self {
         // TODO: Complete this function
+        Self::ParseFloat(e)
     }
 }
 
 // TODO: Implement a missing trait so that `main()` below will compile. It
 // is not necessary to implement any methods inside the missing trait.
+impl Error for ParseClimateError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::ParseInt(e) => Some(e),
+            Self::ParseFloat(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 // The `Display` trait allows for other code to obtain the error formatted
 // as a user-visible string.
@@ -62,7 +70,10 @@ impl Display for ParseClimateError {
         // Imports the variants to make the following code more compact.
         use ParseClimateError::*;
         match self {
+            Empty => write!(f, "empty input"),
+            BadLen => write!(f, "incorrect number of fields"),
             NoCity => write!(f, "no city name"),
+            ParseInt(e) => write!(f, "error parsing year: {}", e),
             ParseFloat(e) => write!(f, "error parsing temperature: {}", e),
         }
     }
@@ -85,11 +96,16 @@ struct Climate {
 // 6. Return an `Ok` value containing the completed `Climate` value.
 impl FromStr for Climate {
     type Err = ParseClimateError;
+
     // TODO: Complete this function by making it handle the missing error
     // cases.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() == 0 {
+            return Err(ParseClimateError::Empty);
+        }
         let v: Vec<_> = s.split(',').collect();
         let (city, year, temp) = match &v[..] {
+            ["", ..] => return Err(ParseClimateError::NoCity),
             [city, year, temp] => (city.to_string(), year, temp),
             _ => return Err(ParseClimateError::BadLen),
         };
@@ -98,6 +114,7 @@ impl FromStr for Climate {
         Ok(Climate { city, year, temp })
     }
 }
+
 
 // Don't change anything below this line (other than to enable ignored
 // tests).
